@@ -1,0 +1,6 @@
+red 2.4     27.6ohm
+gren 3.5    24.2 ohm
+Blue 3.5    24.2 ohm
+
+R1 = 5875/(Vout - 1.485) con r1 4.7 vedi schema lm317
+
