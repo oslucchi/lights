@@ -55,7 +55,7 @@ public:
 	CommandHandler();
 	virtual ~CommandHandler();
 	void addCommand(unsigned char ctrlId, byte ctrlType, uint8_t* pin, uint8_t* upperBound,
-					uint8_t *lowerBound, uint8_t* actualValue, TimerManager *tm, char *ctrlName);
+					uint8_t *lowerBound, uint8_t* actualValue, TimerManager *tm, const char *ctrlName);
 	cmdList *getController();
 };
 

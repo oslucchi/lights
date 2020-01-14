@@ -19,6 +19,7 @@ class Timer {
 
 private:
 	;
+
 public:
 	Timer();
 	void setDuration(unsigned long);

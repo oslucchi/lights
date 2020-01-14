@@ -6,25 +6,22 @@
  */
 
 #include <I2CComm.h>
-#define	LOCAL_BUF_SIZE	128
+#include <debug.h>
+#include <steamBath.h>
 
 ArduinoControl * arCtrl;
-
 
 void clearChannel()
 {
 	while( Wire.available())
 	{
-		byte b = Wire.read();
+		Wire.read();
 	}
 }
 
 void fillBuffer(uint8_t *localBuf, uint8_t bytesRead)
 {
-	char msgBuf[64];
-	sprintf((char *) msgBuf, "fillBuffer() init readIdx %d - writeIdx %d", arCtrl->readIdx, arCtrl->writeIdx);
-	Serial.println(msgBuf);
-
+//	Debug(( "I2CComm", "fillBuffer() r %d - w %d", arCtrl->readIdx, arCtrl->writeIdx ));
 	uint8_t writeIdxBck = arCtrl->writeIdx;
 	for(int i = 0; i < bytesRead; i++)
 	{
@@ -41,12 +38,14 @@ void fillBuffer(uint8_t *localBuf, uint8_t bytesRead)
 		if (arCtrl->writeIdx == LOCAL_BUF_SIZE - 1) arCtrl->writeIdx = 0;
 		arCtrl->readBuf[arCtrl->writeIdx++] = localBuf[i];
 	}
-	Serial.print("fillBuffer() - Incoming buf: ");
-	for(int i = 0; i < bytesRead; i++)
-		Serial.print(arCtrl->toHex(localBuf[i]));
-	Serial.println();
-	sprintf((char *) msgBuf, "fillBuffer() exit readIdx %d - writeIdx %d", arCtrl->readIdx, arCtrl->writeIdx);
-	Serial.println((char *) msgBuf);
+//	memset(msgBuf, '\0', sizeof(msgBuf));
+//	for(int i = 0; i < bytesRead; i++)
+//	{
+//		strcat(msgBuf, " ");
+//		strcat(msgBuf, arCtrl->toHex(localBuf[i]));
+//	}
+//	Debug(( "I2CComm", "fillBuffer()-incoming: '%'", msgBuf ));
+//	Debug(( "I2CComm", "fillBuffer() readIdx %d - writeIdx %d", arCtrl->readIdx, arCtrl->writeIdx ));
 	return;
 }
 
@@ -61,7 +60,7 @@ void I2CComm::receiveEventOnSerial()
 	memset(readBuf, '\0', sizeof(readBuf));
 	while ((rc = Serial.read()) != '\n')
 	{
-		if (rc <32)
+		if (rc < 32)
 			continue;
 		readBuf[bytesRead++] = rc;
 		if (bytesRead >= sizeof(readBuf))
@@ -73,7 +72,7 @@ void I2CComm::receiveEventOnSerial()
 	}
 
     bytesRead = 0;
-    while ((str = strtok_r(p, " ", &p)) != NULL) // delimiter is the semicolon
+    while ((str = strtok_r(p, " ", &p)) != NULL)
 	{
     	localBuf[bytesRead++] = atoi(str);
 	}
@@ -82,19 +81,16 @@ void I2CComm::receiveEventOnSerial()
 
 void receiveEvent(int howMany)
 {
-	uint8_t localBuf[64];
+	uint8_t localBuf[32];
 	uint8_t bytesRead = (uint8_t) Wire.readBytes(localBuf, howMany);
-	if (!_DEBUG_)
-	{
-		fillBuffer(localBuf, bytesRead);
-	}
+	fillBuffer(localBuf, bytesRead);
 }
 
 void sendEvent()
 {
 	if (arCtrl->writeBufLen == 0)
 	{
-		Serial.println("Answer not ready");
+//		Debug(( "I2CComm", "Answer not ready" ));
 		uint8_t buffer[2];
 		buffer[0] = 2;
 		buffer[1] = I2CCMD_NOT_READY;
@@ -102,26 +98,22 @@ void sendEvent()
 	}
 	else
 	{
-		Serial.print("Response pending (len ");
-		Serial.print(arCtrl->writeBufLen);
-		Serial.println("):");
+//		Debug(( "I2CComm", "Response pending (len %d)", arCtrl->writeBufLen ));
+		memset(msgBuf, '\0', sizeof(msgBuf));
 		for(int y = 0; y < arCtrl->writeBufLen; y++)
 		{
-			;
 			if (isprint(arCtrl->writeBuf[y]))
 			{
-				Serial.print("   ");
-				Serial.print(arCtrl->writeBuf[y]);
-				Serial.print(" ");
+				msgBuf[strlen(msgBuf)] = arCtrl->writeBuf[y];
 			}
 			else
 			{
-				Serial.print(arCtrl->toHex(arCtrl->writeBuf[y]));
-				Serial.print(" ");
+				strcat(msgBuf, arCtrl->toHex(arCtrl->writeBuf[y]));
 			}
+			strcat(msgBuf, " ");
 		}
-		Serial.println();
-		Wire.write((char *) arCtrl->writeBuf, (size_t) arCtrl->writeBufLen);
+//		Debug(( "I2CComm", "Response pending (len %d)", arCtrl->writeBufLen ));
+		Wire.write(arCtrl->writeBuf, (size_t) arCtrl->writeBufLen);
 		memset(arCtrl->writeBuf, '\0', LOCAL_BUF_SIZE);
 		arCtrl->writeBufLen = 0;
 	}
@@ -146,4 +138,3 @@ void I2CComm::setCallback()
 
 I2CComm::~I2CComm() {
 }
-

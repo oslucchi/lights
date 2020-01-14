@@ -13,7 +13,7 @@
 
 
 void CommandHandler::addCommand(uint8_t ctrlId, byte ctrlType, uint8_t* pin, uint8_t* upperBound,
-								uint8_t *lowerBound, uint8_t* actualValue, TimerManager* timerManager, char *ctrlName)
+								uint8_t *lowerBound, uint8_t* actualValue, TimerManager* timerManager, const char *ctrlName)
 {
 	unsigned long now = millis();
 

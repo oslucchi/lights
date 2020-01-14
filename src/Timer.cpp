@@ -4,8 +4,8 @@
  *  Created on: Feb 10, 2019
  *      Author: osvaldo
  */
-#include "Timer.h"
 #include "Arduino.h"
+#include "Timer.h"
 
 Timer::Timer() {
 	duration = 0;

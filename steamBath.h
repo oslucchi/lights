@@ -6,6 +6,7 @@
 
 #ifndef _steamBath_H_
 #define _steamBath_H_
+#define	MAX_DBG_LEN	64
 #include "Arduino.h"
 #include "Wire.h"
 
@@ -17,7 +18,7 @@
 
 
 //add your function definitions for the project steamBath here
-
+extern char msgBuf[MAX_DBG_LEN];
 
 //Do not add code below this line
 

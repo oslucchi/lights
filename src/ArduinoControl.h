@@ -24,7 +24,7 @@
 #define CTRLID_STEAM_WATER_OUT	(uint8_t) 5
 #define CTRLID_HUMIDITY_SENSOR	(uint8_t) 6
 
-#define	LOCAL_BUF_SIZE			128
+#define	LOCAL_BUF_SIZE			64
 
 class ArduinoControl {
 	CommandHandler lights;

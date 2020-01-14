@@ -9,7 +9,7 @@
 #define TIMERMANAGER_H_
 
 #include <Timer.h>
-#define	HOW_MANY	10
+#define	HOW_MANY	8
 
 
 struct _timers {

@@ -6,6 +6,8 @@
  */
 
 #include "Arduino.h"
+#include <steamBath.h>
+#include <debug.h>
 #include <ArduinoControl.h>
 #include <LedRGB.h>
 
@@ -106,23 +108,20 @@ Command* ArduinoControl::getCommand(unsigned char ctrlId)
 
 int ArduinoControl::handleI2CCommand()
 {
-	char dbgBuffer[80];
-//	sprintf((char *) dbgBuffer, "Received command. Current idxs read %d - write %d", readIdx, writeIdx);
-//	Serial.println((char *) dbgBuffer);
+//	Debug(( "ARDCtrl", "Command in. idxs r %d - w %d", readIdx, writeIdx ));
 
 	uint8_t cmdBuf[32];
-
 	uint8_t cmdLen = readBuf[readIdx++];
-//	sprintf((char *) dbgBuffer, "Msg len %d. Dumping content", cmdLen);
-//	Serial.println((char *) dbgBuffer);
 
+	memset(msgBuf, '\0', sizeof(msgBuf));
 	for(int i = 1; i < cmdLen; i++)
 	{
 		if (readIdx == LOCAL_BUF_SIZE - 1) readIdx = 0;
 		cmdBuf[i - 1] = readBuf[readIdx++];
-//		Serial.print(toHex(cmdBuf[i - 1]));
+//		strcat(msgBuf, toHex(cmdBuf[i - 1]));
+//		strcat(msgBuf, " ");
 	}
-//	Serial.println();
+//	Debug(( "ARDCtrl", "buffer '%s'", msgBuf ));
 
 	Command* ctrl = getCommand(cmdBuf[0]);
 
@@ -133,6 +132,7 @@ int ArduinoControl::handleI2CCommand()
 	}
 	else
 	{
+		delay(80);
 		ctrl->handleCommand(&cmdBuf[1], writeBuf);
 	}
 	writeBufLen = writeBuf[0];

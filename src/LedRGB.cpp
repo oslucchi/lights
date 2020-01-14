@@ -6,6 +6,8 @@
  */
 #include <LedRGB.h>
 #include "I2CComm.h"
+#include <debug.h>
+#include <steamBath.h>
 
 unsigned long now = 0;
 
@@ -75,12 +77,12 @@ void LedRGB::loop(unsigned long now)
 			}
 			turnAutoOn();
 			fadingTmr->restart(now);
-			Serial.println("Manual part done");
+			Debug(( "RGB", "Manual part done" ));
 		}
 		break;
 
 	default:
-		Serial.println("LedRGB in unknown mode");
+		Debug(( "RGB", "running in unknown mode" ));
 	}
 	for(int i = 0; i < 3; i++)
 	{
@@ -103,7 +105,7 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 	switch(command[0])
 	{
 	case 0x01:
-		Serial.println("I2CCMD_GET");
+		Debug(( "RGB", "I2CCMD_GET" ));
 		response[0] = 5;
 		response[1] = I2CCMD_ACK;
 		response[2] = leds[RED].actualValue;
@@ -112,7 +114,7 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x02:
-		Serial.println("LedRGB: I2CCMD_SET_MANUAL");
+		Debug(( "RGB", "I2CCMD_SET_MANUAL" ));
 		setActualValue((uint8_t *)&command[1]);
 		turnManualOn();
 		response[0] = 2;
@@ -120,7 +122,7 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x03:
-		Serial.println("LedRGB: I2CCMD_SET_AUTO");
+		Debug(( "RGB", "I2CCMD_SET_AUTO" ));
 		setUpperBound((uint8_t *)&command[1]);
 		setLowerBound((uint8_t *)&command[4]);
 		setSpeed((uint8_t *)&command[7]);
@@ -132,21 +134,16 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x04:
-		Serial.println("LedRGB: I2CCMD_SET_BRIGHTNESS");
+		Debug(( "RGB", "I2CCMD_SET_BRIGHTNESS" ));
 		leds[RED].actualValue = command[1];
 		leds[GREEN].actualValue = command[2];
 		leds[BLUE].actualValue = command[3];
 		response[0] = 2;
 		response[1] = I2CCMD_ACK;
-//		response[2] = leds[RED].actualValue;
-//		response[3] = leds[GREEN].actualValue;
-//		response[4] = leds[BLUE].actualValue;
-		// response[5] = status;
-
 		break;
 
 	case 0x05:
-		Serial.println("LedRGB: I2CCMD_SWITCH_ON_OFF");
+		Debug(( "RGB", "I2CCMD_SWITCH_ON_OFF" ));
 		switchOnFlag = (bool) command[1];
 		if (switchOnFlag)
 			switchOn();
@@ -157,14 +154,14 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x06:
-		Serial.println("LedRGB: I2CCMD_SET_SPEED");
+		Debug(( "RGB", "I2CCMD_SET_MANUAL" ));
 		setSpeed((uint8_t *)&command[1]);
 		response[0] = 2;
 		response[1] = I2CCMD_ACK;
 		break;
 
 	case 0x07:
-		Serial.println("LedRGB: I2CCMD_RESET_TIMERS");
+		Debug(( "RGB", "I2CCMD_RESET_TIMERS" ));
 		leds[RED].timer->restart(now);
 		leds[GREEN].timer->restart(now);
 		leds[BLUE].timer->restart(now);
@@ -173,15 +170,14 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x08:
-		Serial.println("LedRGB: I2CCMD_SET_TIMERS");
+		Debug(( "RGB", "I2CCMD_SET_TIMERS" ));
 		setTimers((uint8_t *) &command[1]);
 		response[0] = 2;
 		response[1] = I2CCMD_ACK;
 		break;
 
 	case 0x09:
-		// devId 8 ctrlId 9 0|1 0|1 tmrIn0 tmrIn1 tmrOut0 tmrOut1
-		Serial.println("LedRGB: I2CCMD_FADE");
+		Debug(( "RGB", "I2CCMD_FADE" ));
 		if (command[1] == 1)
 		{
 			memcpy((void *)&fadingTimeIn, (void *) &command[3], sizeof(uint16_t));
@@ -326,8 +322,7 @@ void LedRGB::handleBrightnessFading(uint8_t led)
 	{
 		if (fadingTmr->getIsFront())
 		{
-			Serial.print(this->controlName);
-			Serial.println( " fading time expired.");
+			Debug(( "RGB", "%s fading time expired", this->controlName ));
 			for(int i = 0; i < 3; i++)
 			{
 				leds[i].direction = (fading == FADING_IN ? 1 : -1);
@@ -349,7 +344,7 @@ void LedRGB::handleBrightnessFading(uint8_t led)
 		{
 			fadingTmr->setDuration((fading == FADING_IN ? (uint8_t*) &fadingTimeIn : (uint8_t*) &fadingTimeout));
 			fading = (fading == FADING_IN ? FADING_OUT : FADING_IN);
-			Serial.println("Manual time");
+			Debug(( "RGB", "%s moving to manual", this->controlName ));
 			turnManualOn();
 			fadingTmr->restart(millis());
 		}
@@ -361,7 +356,7 @@ void LedRGB::handleBrightnessFading(uint8_t led)
 	{
 		if (handleBrightnessNormal(led))
 		{
-			Serial.println("handleBrightnessFading: change direction for automode");
+			Debug(( "RGB", "handleBrightnessFading: change direction for automode" ));
 			leds[led].direction *= -1;
 		}
 	}
@@ -375,9 +370,8 @@ void LedRGB::pwmBrightness(uint8_t led)
 	{
 		if (handleBrightnessNormal(led))
 		{
-			Serial.println("pwmBrigthenss: Change direction for automode");
+			Debug(( "RGB", "pwmBrigthenss: change direction for automode" ));
 			leds[led].direction *= -1;
 		}
 	}
-};
-
+}

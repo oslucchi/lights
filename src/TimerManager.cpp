@@ -6,6 +6,7 @@
  */
 #include <TimerManager.h>
 #include "Arduino.h"
+#include "debug.h"
 
 TimerManager::TimerManager() {
 	for(int i = 0; i < HOW_MANY; i++)
@@ -47,7 +48,7 @@ Timer* TimerManager::getNewTimer(const char *n)
 			timers[i].allocated = true;
 			timers[i].timer = new Timer();
 			timers[i].timer->setName(n);
-			Serial.println(n);
+//			Debug(( "TMRMng", "Added %s", n ));
 			return(timers[i].timer);
 		}
 	}
@@ -60,16 +61,12 @@ void TimerManager::dump()
 	{
 		if (timers[i].allocated)
 		{
-			Serial.print("Timer ");
-			Serial.print(timers[i].timer->getName());
-			Serial.print(", duration ");
-			Serial.print(timers[i].timer->getDuration());
-			Serial.print(", elapsed ");
-			Serial.print(timers[i].timer->getElapsed());
-			Serial.print(", status run ");
-			Serial.print(timers[i].timer->getIsRunning() ? "yes " : "no ");
-			Serial.print("exp ");
-			Serial.println(timers[i].timer->getIsExpired() ? "yes " : "no ");
+//			Debug(( "TMRMng", "Tmr %s, dur %d, ela %d, run %c, exp %c",
+//							  timers[i].timer->getName(),
+//							  timers[i].timer->getDuration(),
+//							  timers[i].timer->getElapsed(),
+//							  (timers[i].timer->getIsRunning() ? 'Y' : 'N'),
+//							  (timers[i].timer->getIsExpired() ? 'Y' : 'N') ));
 		}
 	}
 }
