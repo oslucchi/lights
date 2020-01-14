@@ -128,7 +128,7 @@ void Timer::setDuration(unsigned char* t)
 	{
 	case 0x00: // seconds
 		unitsMultilpier = 1000;
-		decimalMultiplier = 100;
+		decimalMultiplier = 10;
 		break;
 	case 0x01: // minutes
 		unitsMultilpier = (unsigned long) 60 * 1000;
