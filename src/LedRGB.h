@@ -45,11 +45,10 @@ private:
 	uint8_t	mode = 0; // 0 - manual / 1 - auto
 	uint8_t	status = 0; // 0 - off / 1 - on
 	uint8_t	fading = FADING_OFF;
-	uint16_t fadingTimeout = 0, fadingTimeIn = 0;
+	uint16_t fadingTmrAuto = 0, fadingTmrManual = 0;
 	Timer *fadingTmr;
-	void handleBrightnessFading(uint8_t led);
+	void handleBrightnessFading();
 	boolean handleBrightnessNormal(uint8_t led);
-	void pwmBrightness(uint8_t led);
 public:
 	LedRGB();
 	int getActualValues(unsigned char *);

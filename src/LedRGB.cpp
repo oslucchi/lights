@@ -16,8 +16,9 @@ LedRGB::LedRGB()
 	fadingTmr = NULL;
 }
 
-void LedRGB::setup(unsigned long now)
+void LedRGB::setup(unsigned long timeNow)
 {
+	now = timeNow;
 	leds[RED].upperBound = 255;
 	leds[GREEN].upperBound = 255;
 	leds[BLUE].upperBound = 255;
@@ -42,17 +43,27 @@ void LedRGB::setup(unsigned long now)
 	fadingTmr = timerManager->getNewTimer("Fader");
 }
 
-void LedRGB::loop(unsigned long now)
+void LedRGB::loop(unsigned long timeNow)
 {
+	now = timeNow;
 	switch(mode)
 	{
 	case MODE_AUTO:
-		for(int i = 0; i < 3; i++)
+		if (fading != FADING_OFF)
 		{
-			if (leds[i].timer->getIsExpired())
+			handleBrightnessFading();
+		}
+		else
+		{
+			for(int i = 0; i < 3; i++)
 			{
-				pwmBrightness(i);
-				leds[i].timer->restart(now);
+				if (handleBrightnessNormal(i))
+				{
+					leds[i].direction *= -1;
+					DebugRGB(( 1, "%s changed direction to %s",
+							   leds[i].timer->getName(),
+							   (leds[i].direction == 1 ? "up" : "down") ));
+				}
 			}
 		}
 		break;
@@ -62,28 +73,28 @@ void LedRGB::loop(unsigned long now)
 		{
 			for(int i = 0; i < 3; i++)
 			{
-				if (fading == FADING_IN )
+				if (fading == FADING_OUT )
 				{
 					leds[i].actualValue = leds[i].lowerBound;
 					leds[i].direction = 1;
-					fading = FADING_OUT;
 				}
 				else
 				{
 					leds[i].actualValue = leds[i].upperBound;
 					leds[i].direction = -1;
-					fading = FADING_IN;
 				}
 			}
 			turnAutoOn();
+			fadingTmr->setDuration((uint8_t *)&fadingTmrAuto);
 			fadingTmr->restart(now);
-			Debug(( "RGB", "Manual part done" ));
+			DebugRGB(( 1, "%s going auto duration %d", this->controlName, fadingTmr->getDuration() ));
 		}
 		break;
 
 	default:
-		Debug(( "RGB", "running in unknown mode" ));
+		DebugRGB(( 1, "running in unknown mode" ));
 	}
+
 	for(int i = 0; i < 3; i++)
 	{
 		analogWrite(leds[i].pin, leds[i].actualValue * status);
@@ -105,7 +116,7 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 	switch(command[0])
 	{
 	case 0x01:
-		Debug(( "RGB", "I2CCMD_GET" ));
+		DebugRGB(( 1, "I2CCMD_GET" ));
 		response[0] = 5;
 		response[1] = I2CCMD_ACK;
 		response[2] = leds[RED].actualValue;
@@ -114,7 +125,7 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x02:
-		Debug(( "RGB", "I2CCMD_SET_MANUAL" ));
+		DebugRGB(( 1, "I2CCMD_SET_MANUAL" ));
 		setActualValue((uint8_t *)&command[1]);
 		turnManualOn();
 		response[0] = 2;
@@ -122,19 +133,23 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x03:
-		Debug(( "RGB", "I2CCMD_SET_AUTO" ));
+		DebugRGB(( 1, "I2CCMD_SET_AUTO" ));
 		setUpperBound((uint8_t *)&command[1]);
 		setLowerBound((uint8_t *)&command[4]);
 		setSpeed((uint8_t *)&command[7]);
 		setActualValue((uint8_t *)&command[10]);
 		setTimers((uint8_t *) &command[13]);
+		for(int i = 0; i < 3; i++)
+		{
+			leds[i].direction = 1;
+		}
 		turnAutoOn();
 		response[0] = 2;
 		response[1] = I2CCMD_ACK;
 		break;
 
 	case 0x04:
-		Debug(( "RGB", "I2CCMD_SET_BRIGHTNESS" ));
+		DebugRGB(( 1, "I2CCMD_SET_BRIGHTNESS" ));
 		leds[RED].actualValue = command[1];
 		leds[GREEN].actualValue = command[2];
 		leds[BLUE].actualValue = command[3];
@@ -143,7 +158,7 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x05:
-		Debug(( "RGB", "I2CCMD_SWITCH_ON_OFF" ));
+		DebugRGB(( 1, "I2CCMD_SWITCH_ON_OFF" ));
 		switchOnFlag = (bool) command[1];
 		if (switchOnFlag)
 			switchOn();
@@ -154,14 +169,14 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x06:
-		Debug(( "RGB", "I2CCMD_SET_MANUAL" ));
+		DebugRGB(( 1, "I2CCMD_SET_MANUAL" ));
 		setSpeed((uint8_t *)&command[1]);
 		response[0] = 2;
 		response[1] = I2CCMD_ACK;
 		break;
 
 	case 0x07:
-		Debug(( "RGB", "I2CCMD_RESET_TIMERS" ));
+		DebugRGB(( 1, "I2CCMD_RESET_TIMERS" ));
 		leds[RED].timer->restart(now);
 		leds[GREEN].timer->restart(now);
 		leds[BLUE].timer->restart(now);
@@ -170,21 +185,22 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		break;
 
 	case 0x08:
-		Debug(( "RGB", "I2CCMD_SET_TIMERS" ));
+		DebugRGB(( 1, "I2CCMD_SET_TIMERS" ));
 		setTimers((uint8_t *) &command[1]);
 		response[0] = 2;
 		response[1] = I2CCMD_ACK;
 		break;
 
 	case 0x09:
-		Debug(( "RGB", "I2CCMD_FADE" ));
+		DebugRGB(( 1, "I2CCMD_FADE" ));
 		if (command[1] == 1)
 		{
-			memcpy((void *)&fadingTimeIn, (void *) &command[3], sizeof(uint16_t));
-			memcpy((void *)&fadingTimeout, (void *) &command[5], sizeof(uint16_t));
+			memcpy((void *)&fadingTmrAuto, (void *) &command[3], sizeof(uint16_t));
+			memcpy((void *)&fadingTmrManual, (void *) &command[5], sizeof(uint16_t));
 			fading = (command[2] == 0 ? FADING_OUT : FADING_IN);
-			fadingTmr->setDuration(fading == FADING_OUT ? (uint8_t *)&fadingTimeout : (uint8_t *)&fadingTimeIn);
-			fadingTmr->start(millis());
+			fadingTmr->setDuration((uint8_t *)&fadingTmrAuto);
+			DebugRGB(( 1, "%s auto duration %d", this->controlName, fadingTmr->getDuration() ));
+			fadingTmr->restart(now);
 		}
 		else
 		{
@@ -206,8 +222,8 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 			}
 			fading = FADING_OFF;
 			fadingTmr->reset();
+			turnAutoOn();
 		}
-		turnAutoOn();
 		response[0] = 2;
 		response[1] = I2CCMD_ACK;
 		break;
@@ -239,8 +255,8 @@ void LedRGB::turnAutoOn()
 	mode = MODE_AUTO;
 	for(int i = 0; i < 3; i++)
 	{
-		leds[i].direction = 1;
 		leds[i].timer->start(now);
+		DebugRGB(( 1, "%s duration set to %d", leds[i].timer->getName(), leds[i].timer->getDuration() ));
 	}
 }
 
@@ -267,7 +283,6 @@ void LedRGB::setSpeed(uint8_t* s)
 
 void LedRGB::setTimers(uint8_t* s)
 {
-	unsigned long now = millis();
 	leds[RED].timer->setDuration(&s[0]);
 	leds[GREEN].timer->setDuration(&s[2]);
 	leds[BLUE].timer->setDuration(&s[4]);
@@ -301,28 +316,32 @@ boolean LedRGB::handleBrightnessNormal(uint8_t led)
 	static boolean changeDirection;
 	changeDirection = false;
 	short value;
-	value = leds[led].actualValue + leds[led].direction * leds[led].speed;
-	if (value >= leds[led].upperBound && leds[led].direction == 1)
+	if (leds[led].timer->getIsExpired())
 	{
-		value = leds[led].upperBound;
-		changeDirection = true;
+		value = leds[led].actualValue + leds[led].direction * leds[led].speed;
+		if (value >= leds[led].upperBound && leds[led].direction == 1)
+		{
+			value = leds[led].upperBound;
+			changeDirection = true;
+		}
+		else if (value <= leds[led].lowerBound && leds[led].direction == -1)
+		{
+			value = leds[led].lowerBound;
+			changeDirection = true;
+		}
+		leds[led].actualValue = value;
+		leds[led].timer->restart(now);
 	}
-	else if (value <= leds[led].lowerBound && leds[led].direction == -1)
-	{
-		value = leds[led].lowerBound;
-		changeDirection = true;
-	}
-	leds[led].actualValue = value;
 	return(changeDirection);
 }
 
-void LedRGB::handleBrightnessFading(uint8_t led)
+void LedRGB::handleBrightnessFading()
 {
 	if (fadingTmr->getIsExpired())
 	{
 		if (fadingTmr->getIsFront())
 		{
-			Debug(( "RGB", "%s fading time expired", this->controlName ));
+			DebugRGB(( 1, "%s fading time expired", this->controlName ));
 			for(int i = 0; i < 3; i++)
 			{
 				leds[i].direction = (fading == FADING_IN ? 1 : -1);
@@ -342,36 +361,29 @@ void LedRGB::handleBrightnessFading(uint8_t led)
 		}
 		if (fadingIsOver)
 		{
-			fadingTmr->setDuration((fading == FADING_IN ? (uint8_t*) &fadingTimeIn : (uint8_t*) &fadingTimeout));
-			fading = (fading == FADING_IN ? FADING_OUT : FADING_IN);
-			Debug(( "RGB", "%s moving to manual", this->controlName ));
 			turnManualOn();
-			fadingTmr->restart(millis());
+			fadingTmr->setDuration((uint8_t*) &fadingTmrManual);
+			DebugRGB(( 1, "%s  going manual. Duration %d", this->controlName, fadingTmr->getDuration() ));
+			fadingTmr->restart(now);
 		}
 		else
-			handleBrightnessNormal(led);
+		{
+			for(int i = 0; i < 3; i++)
+				handleBrightnessNormal(i);
+		}
 		return;
 	}
 	else
 	{
-		if (handleBrightnessNormal(led))
+		for(int i = 0; i < 3; i++)
 		{
-			Debug(( "RGB", "handleBrightnessFading: change direction for automode" ));
-			leds[led].direction *= -1;
-		}
-	}
-}
-
-void LedRGB::pwmBrightness(uint8_t led)
-{
-	if (fading != FADING_OFF)
-		handleBrightnessFading(led);
-	else
-	{
-		if (handleBrightnessNormal(led))
-		{
-			Debug(( "RGB", "pwmBrigthenss: change direction for automode" ));
-			leds[led].direction *= -1;
+			if (handleBrightnessNormal(i))
+			{
+				leds[i].direction *= -1;
+				DebugRGB(( 1, "Fading - %s changed direction to %s",
+						   leds[i].timer->getName(),
+						   (leds[i].direction == 1 ? "up" : "down") ));
+			}
 		}
 	}
 }

@@ -48,7 +48,7 @@ Timer* TimerManager::getNewTimer(const char *n)
 			timers[i].allocated = true;
 			timers[i].timer = new Timer();
 			timers[i].timer->setName(n);
-//			Debug(( "TMRMng", "Added %s", n ));
+//			DebugTMRMng(( 1, "Added %s", n ));
 			return(timers[i].timer);
 		}
 	}
@@ -61,7 +61,7 @@ void TimerManager::dump()
 	{
 		if (timers[i].allocated)
 		{
-//			Debug(( "TMRMng", "Tmr %s, dur %d, ela %d, run %c, exp %c",
+//			DebugTMRMng(( 1, "Tmr %s, dur %d, ela %d, run %c, exp %c",
 //							  timers[i].timer->getName(),
 //							  timers[i].timer->getDuration(),
 //							  timers[i].timer->getElapsed(),

@@ -21,7 +21,7 @@ void clearChannel()
 
 void fillBuffer(uint8_t *localBuf, uint8_t bytesRead)
 {
-//	Debug(( "I2CComm", "fillBuffer() r %d - w %d", arCtrl->readIdx, arCtrl->writeIdx ));
+//	DebugI2CComm(( 1, "fillBuffer() r %d - w %d", arCtrl->readIdx, arCtrl->writeIdx ));
 	uint8_t writeIdxBck = arCtrl->writeIdx;
 	for(int i = 0; i < bytesRead; i++)
 	{
@@ -44,8 +44,8 @@ void fillBuffer(uint8_t *localBuf, uint8_t bytesRead)
 //		strcat(msgBuf, " ");
 //		strcat(msgBuf, arCtrl->toHex(localBuf[i]));
 //	}
-//	Debug(( "I2CComm", "fillBuffer()-incoming: '%'", msgBuf ));
-//	Debug(( "I2CComm", "fillBuffer() readIdx %d - writeIdx %d", arCtrl->readIdx, arCtrl->writeIdx ));
+//	DebugI2CComm(( 1, "fillBuffer()-incoming: '%'", msgBuf ));
+//	DebugI2CComm(( 1, "fillBuffer() readIdx %d - writeIdx %d", arCtrl->readIdx, arCtrl->writeIdx ));
 	return;
 }
 
@@ -90,7 +90,7 @@ void sendEvent()
 {
 	if (arCtrl->writeBufLen == 0)
 	{
-//		Debug(( "I2CComm", "Answer not ready" ));
+//		DebugI2CComm(( 1, "Answer not ready" ));
 		uint8_t buffer[2];
 		buffer[0] = 2;
 		buffer[1] = I2CCMD_NOT_READY;
@@ -98,7 +98,7 @@ void sendEvent()
 	}
 	else
 	{
-//		Debug(( "I2CComm", "Response pending (len %d)", arCtrl->writeBufLen ));
+//		DebugI2CComm(( 1, "Response pending (len %d)", arCtrl->writeBufLen ));
 		memset(msgBuf, '\0', sizeof(msgBuf));
 		for(int y = 0; y < arCtrl->writeBufLen; y++)
 		{
@@ -112,7 +112,7 @@ void sendEvent()
 			}
 			strcat(msgBuf, " ");
 		}
-//		Debug(( "I2CComm", "Response pending (len %d)", arCtrl->writeBufLen ));
+//		DebugI2CComm(( 1, "Response pending (len %d)", arCtrl->writeBufLen ));
 		Wire.write(arCtrl->writeBuf, (size_t) arCtrl->writeBufLen);
 		memset(arCtrl->writeBuf, '\0', LOCAL_BUF_SIZE);
 		arCtrl->writeBufLen = 0;

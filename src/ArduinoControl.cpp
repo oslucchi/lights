@@ -108,7 +108,7 @@ Command* ArduinoControl::getCommand(unsigned char ctrlId)
 
 int ArduinoControl::handleI2CCommand()
 {
-//	Debug(( "ARDCtrl", "Command in. idxs r %d - w %d", readIdx, writeIdx ));
+//	DebugARDCtrl(( 1, "Command in. idxs r %d - w %d", readIdx, writeIdx ));
 
 	uint8_t cmdBuf[32];
 	uint8_t cmdLen = readBuf[readIdx++];
@@ -121,7 +121,7 @@ int ArduinoControl::handleI2CCommand()
 //		strcat(msgBuf, toHex(cmdBuf[i - 1]));
 //		strcat(msgBuf, " ");
 	}
-//	Debug(( "ARDCtrl", "buffer '%s'", msgBuf ));
+//	DebugARDCtrl(( 1, "buffer '%s'", msgBuf ));
 
 	Command* ctrl = getCommand(cmdBuf[0]);
 

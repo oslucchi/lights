@@ -1,7 +1,7 @@
 #ifndef DEBUG_H
 	#define DEBUG_H
 	#include	<stdarg.h>
-	extern	void	_DEBUG( const char *, ... );
+	extern	void	_DEBUG( int, ... );
 
 	/*
 	 * Conditional use of Debug.
@@ -18,8 +18,22 @@
 	 */
 
 	#ifdef _DEBUG_
-	# define Debug( stuff )			_DEBUG stuff
+		#ifdef _DEBUGARDCTRL_
+			#define DebugARDCtrl( stuff )			_DEBUG stuff
+		#endif
+		#ifdef _DEBUGRGB_
+			#define DebugRGB( stuff )			_DEBUG stuff
+		#endif
+		#ifdef _DEBUGI2CCOMM_
+			# define DebugI2CComm( stuff )		_DEBUG stuff
+		#endif
+		#ifdef _DEBUGTMRMNG_
+			# define DebugTMRMng( stuff )		_DEBUG stuff
+		#endif
 	#else
-	# define Debug( stuff )			;
+		#define DebugARDCtrl( stuff )			;
+		#define DebugRGB( stuff )			;
+		#define DebugI2CComm( stuff )		;
+		#define DebugTMRMng( stuff )		;
 	#endif
 #endif
