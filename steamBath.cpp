@@ -22,6 +22,7 @@ void setup()
 #else
 	// I2C to communicate
 	i2c->connectToBus();
+	i2c->clearChannel();
 	i2c->setCallback();
 #endif
 
@@ -40,24 +41,10 @@ void loop()
 #ifdef _DEBUG_
 	if (Serial.available())
 	{
-		Serial.println("New data arrived");
 		i2c->receiveEventOnSerial();
 	}
 #endif
 	ac->loop(now);
-#ifdef _DEBUG_
-	if (ac->writeBufLen != 0)
-	{
-		Serial.println("From control:");
-		for(int i = 0; i < ac->writeBufLen; i++)
-		{
-			Serial.print(ac->toHex(ac->writeBuf[i]));
-		}
-		Serial.println();
-		memset(ac->writeBuf, '\0', sizeof(ac->writeBuf));
-		ac->writeBufLen = 0;
-	}
-#endif
 	if (now - startTime > blinkTime)
 	{
 		digitalWrite(LED_BUILTIN, (status = !status));

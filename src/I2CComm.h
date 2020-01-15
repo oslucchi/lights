@@ -24,6 +24,7 @@ private:
 public:
 //	I2CComm(void (*)(int), void (*)());
 	I2CComm(ArduinoControl *);
+	void clearChannel();
 	void connectToBus();
 	void receiveEventOnSerial();
 	void setCallback();

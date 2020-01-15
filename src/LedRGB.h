@@ -42,6 +42,8 @@ typedef struct _Led {
 class LedRGB : public Command {
 private:
 	Led		leds[3];
+	uint8_t faderLowerBound[3];
+	uint8_t autoLowerBound[3];
 	uint8_t	mode = 0; // 0 - manual / 1 - auto
 	uint8_t	status = 0; // 0 - off / 1 - on
 	uint8_t	fading = FADING_OFF;

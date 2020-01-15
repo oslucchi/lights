@@ -12,6 +12,6 @@ void	_DEBUG( int level, ... )
 	fmt = va_arg(dargs, char *);
 
 	vsprintf(msgBuf, fmt, dargs );
-	Serial.println(msgBuf);
+//	Serial.println(msgBuf);
 }
 #endif

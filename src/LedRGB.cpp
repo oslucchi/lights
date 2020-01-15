@@ -75,7 +75,7 @@ void LedRGB::loop(unsigned long timeNow)
 			{
 				if (fading == FADING_OUT )
 				{
-					leds[i].actualValue = leds[i].lowerBound;
+					leds[i].lowerBound = autoLowerBound[i];
 					leds[i].direction = 1;
 				}
 				else
@@ -83,11 +83,12 @@ void LedRGB::loop(unsigned long timeNow)
 					leds[i].actualValue = leds[i].upperBound;
 					leds[i].direction = -1;
 				}
+				leds[i].speed = 1;
 			}
 			turnAutoOn();
 			fadingTmr->setDuration((uint8_t *)&fadingTmrAuto);
-			fadingTmr->restart(now);
 			DebugRGB(( 1, "%s going auto duration %d", this->controlName, fadingTmr->getDuration() ));
+			fadingTmr->restart(now);
 		}
 		break;
 
@@ -197,28 +198,25 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 		{
 			memcpy((void *)&fadingTmrAuto, (void *) &command[3], sizeof(uint16_t));
 			memcpy((void *)&fadingTmrManual, (void *) &command[5], sizeof(uint16_t));
-			fading = (command[2] == 0 ? FADING_OUT : FADING_IN);
+			fading = (command[2] == 2 ? FADING_OUT : FADING_IN);
+			if (fading == FADING_OUT)
+			{
+				// Setup the lower bound for the fading out controllers
+				faderLowerBound[0] = command[7];
+				faderLowerBound[1] = command[8];
+				faderLowerBound[2] = command[9];
+			}
 			fadingTmr->setDuration((uint8_t *)&fadingTmrAuto);
-			DebugRGB(( 1, "%s auto duration %d", this->controlName, fadingTmr->getDuration() ));
 			fadingTmr->restart(now);
 		}
 		else
 		{
 			if (fading == FADING_OUT)
 			{
-				for(int i = 0; i < 3; i++)
-				{
-					leds[i].actualValue = leds[i].lowerBound;
-					leds[i].direction = 1;
-				}
-			}
-			else if (fading == FADING_IN)
-			{
-				for(int i = 0; i < 3; i++)
-				{
-					leds[i].actualValue = leds[i].upperBound;
-					leds[i].direction = -1;
-				}
+				// Setup the lower bound for the fading out controllers
+				leds[0].lowerBound = command[7];
+				leds[1].lowerBound = command[8];
+				leds[2].lowerBound = command[9];
 			}
 			fading = FADING_OFF;
 			fadingTmr->reset();
@@ -256,7 +254,6 @@ void LedRGB::turnAutoOn()
 	for(int i = 0; i < 3; i++)
 	{
 		leds[i].timer->start(now);
-		DebugRGB(( 1, "%s duration set to %d", leds[i].timer->getName(), leds[i].timer->getDuration() ));
 	}
 }
 
@@ -272,6 +269,9 @@ void LedRGB::setLowerBound(uint8_t* lb)
 	leds[RED].lowerBound = lb[0];
 	leds[GREEN].lowerBound = lb[1];
 	leds[BLUE].lowerBound = lb[2];
+	autoLowerBound[RED] = lb[0];
+	autoLowerBound[GREEN] = lb[1];
+	autoLowerBound[BLUE] = lb[2];
 }
 
 void LedRGB::setSpeed(uint8_t* s)
@@ -341,11 +341,34 @@ void LedRGB::handleBrightnessFading()
 	{
 		if (fadingTmr->getIsFront())
 		{
-			DebugRGB(( 1, "%s fading time expired", this->controlName ));
+			int timeNeeded;
+			int speeds[3];
 			for(int i = 0; i < 3; i++)
 			{
-				leds[i].direction = (fading == FADING_IN ? 1 : -1);
+				if (fading == FADING_IN)
+				{
+					leds[i].direction = 1;
+					timeNeeded = (leds[i].upperBound - leds[i].actualValue) * leds[i].timer->getDuration();
+				}
+				else
+				{
+					leds[i].direction = -1;
+					leds[i].lowerBound = faderLowerBound[i];
+					timeNeeded = (leds[i].actualValue - leds[i].lowerBound) * leds[i].timer->getDuration();
+				}
+				leds[i].speed = timeNeeded / 10000;
+				if ((timeNeeded % 10000) != 0)
+				{
+					leds[i].speed++;
+				}
+				speeds[i] = leds[i].speed;
 			}
+			DebugRGB(( 1, "%s fade tmr exp. Fading is %d (speed %d %d %d)",
+					   this->controlName, fading, speeds[0], speeds[1], speeds[2] ));
+//			DebugRGB(( 1, "LB set %d|%d-%d|%d-%d|%d",
+//					   leds[0].lowerBound, leds[0].direction,
+//					   leds[1].lowerBound, leds[1].direction,
+//					   leds[2].lowerBound, leds[2].direction ));
 		}
 
 		boolean fadingIsOver = true;
@@ -359,17 +382,21 @@ void LedRGB::handleBrightnessFading()
 				fadingIsOver = false;
 			}
 		}
+
 		if (fadingIsOver)
 		{
 			turnManualOn();
 			fadingTmr->setDuration((uint8_t*) &fadingTmrManual);
-			DebugRGB(( 1, "%s  going manual. Duration %d", this->controlName, fadingTmr->getDuration() ));
+			DebugRGB(( 1, "%s  going manual (act %d-%d-%d). Duration %d",
+					   this->controlName, leds[0].actualValue, leds[1].actualValue, leds[2].actualValue, fadingTmr->getDuration() ));
 			fadingTmr->restart(now);
 		}
 		else
 		{
 			for(int i = 0; i < 3; i++)
+			{
 				handleBrightnessNormal(i);
+			}
 		}
 		return;
 	}
