@@ -9,7 +9,7 @@
 #include <debug.h>
 #include <steamBath.h>
 
-unsigned long now = 0;
+unsigned long ledStatusBlinkTime = 0;
 
 LedRGB::LedRGB()
 {
@@ -18,7 +18,7 @@ LedRGB::LedRGB()
 
 void LedRGB::setup(unsigned long timeNow)
 {
-	now = timeNow;
+	ledStatusBlinkTime = timeNow;
 	leds[RED].upperBound = 255;
 	leds[GREEN].upperBound = 255;
 	leds[BLUE].upperBound = 255;
@@ -45,7 +45,7 @@ void LedRGB::setup(unsigned long timeNow)
 
 void LedRGB::loop(unsigned long timeNow)
 {
-	now = timeNow;
+	ledStatusBlinkTime = timeNow;
 	switch(mode)
 	{
 	case MODE_AUTO:
@@ -88,7 +88,7 @@ void LedRGB::loop(unsigned long timeNow)
 			turnAutoOn();
 			fadingTmr->setDuration((uint8_t *)&fadingTmrAuto);
 			DebugRGB(( 1, "%s going auto duration %d", this->controlName, fadingTmr->getDuration() ));
-			fadingTmr->restart(now);
+			fadingTmr->restart(ledStatusBlinkTime);
 		}
 		break;
 
@@ -178,9 +178,9 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 
 	case 0x07:
 		DebugRGB(( 1, "I2CCMD_RESET_TIMERS" ));
-		leds[RED].timer->restart(now);
-		leds[GREEN].timer->restart(now);
-		leds[BLUE].timer->restart(now);
+		leds[RED].timer->restart(ledStatusBlinkTime);
+		leds[GREEN].timer->restart(ledStatusBlinkTime);
+		leds[BLUE].timer->restart(ledStatusBlinkTime);
 		response[0] = 2;
 		response[1] = I2CCMD_ACK;
 		break;
@@ -207,7 +207,7 @@ void LedRGB::handleCommand(const unsigned char * command, unsigned char * respon
 				faderLowerBound[2] = command[9];
 			}
 			fadingTmr->setDuration((uint8_t *)&fadingTmrAuto);
-			fadingTmr->restart(now);
+			fadingTmr->restart(ledStatusBlinkTime);
 		}
 		else
 		{
@@ -253,7 +253,7 @@ void LedRGB::turnAutoOn()
 	mode = MODE_AUTO;
 	for(int i = 0; i < 3; i++)
 	{
-		leds[i].timer->start(now);
+		leds[i].timer->start(ledStatusBlinkTime);
 	}
 }
 
@@ -286,9 +286,9 @@ void LedRGB::setTimers(uint8_t* s)
 	leds[RED].timer->setDuration(&s[0]);
 	leds[GREEN].timer->setDuration(&s[2]);
 	leds[BLUE].timer->setDuration(&s[4]);
-	leds[RED].timer->restart(now);
-	leds[GREEN].timer->restart(now);
-	leds[BLUE].timer->restart(now);
+	leds[RED].timer->restart(ledStatusBlinkTime);
+	leds[GREEN].timer->restart(ledStatusBlinkTime);
+	leds[BLUE].timer->restart(ledStatusBlinkTime);
 }
 
 void LedRGB::setActualValue(uint8_t* sv)
@@ -330,7 +330,7 @@ boolean LedRGB::handleBrightnessNormal(uint8_t led)
 			changeDirection = true;
 		}
 		leds[led].actualValue = value;
-		leds[led].timer->restart(now);
+		leds[led].timer->restart(ledStatusBlinkTime);
 	}
 	return(changeDirection);
 }
@@ -389,7 +389,7 @@ void LedRGB::handleBrightnessFading()
 			fadingTmr->setDuration((uint8_t*) &fadingTmrManual);
 			DebugRGB(( 1, "%s  going manual (act %d-%d-%d). Duration %d",
 					   this->controlName, leds[0].actualValue, leds[1].actualValue, leds[2].actualValue, fadingTmr->getDuration() ));
-			fadingTmr->restart(now);
+			fadingTmr->restart(ledStatusBlinkTime);
 		}
 		else
 		{

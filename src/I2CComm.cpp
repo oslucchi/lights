@@ -22,10 +22,6 @@ void I2CComm::clearChannel()
 void fillBuffer(uint8_t *localBuf, uint8_t bytesRead)
 {
 	DebugI2CComm(( 1, "fillBuffer() r %d - w %d", arCtrl->readIdx, arCtrl->writeIdx ));
-//	Serial.print("fillBuffer() r ");
-//	Serial.print(arCtrl->readIdx);
-//	Serial.print(" w ");
-//	Serial.println(arCtrl->writeIdx );
 	uint8_t writeIdxBck = arCtrl->writeIdx;
 	for(int i = 0; i < bytesRead; i++)
 	{
@@ -42,11 +38,6 @@ void fillBuffer(uint8_t *localBuf, uint8_t bytesRead)
 		if (arCtrl->writeIdx == LOCAL_BUF_SIZE - 1) arCtrl->writeIdx = 0;
 		arCtrl->readBuf[arCtrl->writeIdx++] = localBuf[i];
 	}
-
-//	for(int i = 0; i < bytesRead; i++)
-//	{
-//		msgBuf[i] = arCtrl->toHex(localBuf[i]);
-//	}
 	DebugI2CComm(( 1, "fillBuffer()-incoming: '%s'", arCtrl->toHex(localBuf) ));
 	DebugI2CComm(( 1, "fillBuffer() readIdx %d - writeIdx %d", arCtrl->readIdx, arCtrl->writeIdx ));
 	return;
